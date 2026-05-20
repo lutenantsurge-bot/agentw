@@ -1,0 +1,179 @@
+═══════════════════════════════════════════════════════════════
+ROBOT INTEGRATION SUMMARY FOR llama-box-agentw (aka "notice")
+═══════════════════════════════════════════════════════════════
+
+PROJECT NAME: llama-box-agentw (renamed from llama-box after whisper.cpp was integrated)
+
+TASK: Integrate ESP32/Arduino serial communication + IP Webcam video
+FLAG: -sbot (optional, enables robot mode)
+
+═══════════════════════════════════════════════════════════════
+FILES CREATED/MODIFIED
+═══════════════════════════════════════════════════════════════
+
+NEW FILES:
+  ✓ ipcam.cpp         - IP Webcam JPEG capture (TCP sockets, HTTP)
+  ✓ robot_tools.h     - Robot control tools header
+  ✓ robot_tools.cpp   - Robot tools implementation (rc_control, webcam_capture)
+  ✓ ROBOT_INTEGRATION.md - Full documentation
+
+MODIFIED FILES:
+  ✓ CMakeLists.txt    - Added WITH_ROBOT/WITH_IPCAM options
+  ✓ main.cpp          - Updated with -sbot flag parsing + tool integration
+  ✓ build.sh          - Added -sbot build flag
+
+EXISTING FILES (already present):
+  ✓ serial_robot.h    - Serial config + class header
+  ✓ serial_robot.cpp  - Serial communication implementation
+  ✓ ipcam.h           - IP Webcam class header
+
+═══════════════════════════════════════════════════════════════
+SERIAL PROTOCOL (Arduino/ESP32)
+═══════════════════════════════════════════════════════════════
+
+Commands (newline-terminated):
+  F<speed>   - Forward, speed 0-255
+  B<speed>   - Backward
+  L<speed>   - Turn left (differential)
+  R<speed>   - Turn right
+  S          - Stop
+  X          - Emergency stop
+  A<n>:<deg> - Servo arm n to degree 0-180
+
+Defaults:
+  Port: /dev/ttyUSB0
+  Baud: 115200
+
+═══════════════════════════════════════════════════════════════
+IP WEBCAM CONFIGURATION
+═══════════════════════════════════════════════════════════════
+
+Android IP Webcam App requirements:
+  - Install "IP Webcam" from Play Store
+  - Start server on port 8080 (default)
+  - Note phone IP address
+
+Defaults:
+  Host: 192.168.1.100
+  Port: 8080
+
+═══════════════════════════════════════════════════════════════
+HOW TO BUILD AND RUN
+═══════════════════════════════════════════════════════════════
+
+1. Build with robot mode:
+   cd ~/Desktop/llama-box-agentw
+   ./build.sh -sbot
+
+2. Run with custom settings:
+   ./build/bin/llama-box-agent -sbot \
+     -sbot-port /dev/ttyACM0 \
+     -sbot-baud 115200 \
+     -sbot-cam 192.168.1.50 \
+     -sbot-cam-port 8080
+
+3. Run without robot (basic):
+   ./build/bin/llama-box-agent
+
+═══════════════════════════════════════════════════════════════
+TOOL CALLS FOR LLM
+═══════════════════════════════════════════════════════════════
+
+rc_control:
+  {
+    "name": "rc_control",
+    "arguments": {
+      "action": "forward",
+      "speed": 160
+    }
+  }
+
+Actions: forward, backward, left, right, stop, emergency_stop
+
+webcam_capture:
+  {
+    "name": "webcam_capture",
+    "arguments": {
+      "save_as": "frame.jpg"
+    }
+  }
+
+═══════════════════════════════════════════════════════════════
+ARDUINO SKETCH (L298N Motor Driver)
+═══════════════════════════════════════════════════════════════
+
+See ROBOT_INTEGRATION.md for complete Arduino code
+
+Quick reference:
+  #define ENA 9, IN1 8, IN2 7  // Motor A
+  #define ENB 10, IN3 6, IN4 5  // Motor B
+  Serial.begin(115200)
+
+  Commands: F160, B160, L160, R160, S, X
+
+═══════════════════════════════════════════════════════════════
+ARCHITECTURE FLOW
+═══════════════════════════════════════════════════════════════
+
+[LLM Response] 
+     ↓
+[Parse tool call / keywords]
+     ↓
+[Execute rc_control tool] 
+     ↓
+[SerialRobot.send("F160\n")]
+     ↓
+[Arduino receives command]
+     ↓
+[L298N drives motors]
+
+For IP Webcam:
+
+[Agent needs vision]
+     ↓
+[webcam_capture tool called]
+     ↓
+[IPCam.grab_jpeg() → HTTP GET /shot.jpg]
+     ↓
+[JPEG bytes saved to file]
+     ↓
+[clip.cpp processes frame]
+     ↓
+[Visual embeddings → LLM]
+
+═══════════════════════════════════════════════════════════════
+NEXT STEPS (Optional Extensions)
+═══════════════════════════════════════════════════════════════
+
+1. Vision-to-robot bridge:
+   - Use clip.cpp to process webcam frames
+   - Detect obstacles → LLM decides action → robot moves
+
+2. Autonomous heartbeat loop:
+   - Capture → Describe → Decide → Drive → Log
+   - Continuous operation with dataset collection
+
+3. Fine-tuning support:
+   - Collect robot action datasets
+   - Fine-tune VLM on robotics data
+
+4. Tool calling enhancement:
+   - Replace keyword parsing with JSON tool calls
+   - More precise robot control
+
+═══════════════════════════════════════════════════════════════
+FILES REFERENCE
+═══════════════════════════════════════════════════════════════
+
+Full documentation: ~/Desktop/llama-box-agentw/ROBOT_INTEGRATION.md
+Build script: ~/Desktop/llama-box-agentw/build.sh
+Main source: ~/Desktop/llama-box-agentw/main.cpp
+Robot header: ~/Desktop/llama-box-agentw/serial_robot.h
+Robot impl: ~/Desktop/llama-box-agentw/serial_robot.cpp
+IPCam header: ~/Desktop/llama-box-agentw/ipcam.h
+IPCam impl: ~/Desktop/llama-box-agentw/ipcam.cpp
+Robot tools: ~/Desktop/llama-box-agentw/robot_tools.{h,cpp}
+
+═══════════════════════════════════════════════════════════════
+THANKS FOR THE POWER GOING OUT! READY TO FINISH THIS!
+═══════════════════════════════════════════════════════════════

@@ -2,7 +2,7 @@ llama-box + agent.cpp Combined Project
 ======================================
 
 This project combines llama-box (multimodal inference server) with agent.cpp (C++ agent framework) into a single unified binary.
-
+tl;dr: build then run llama-server--model /your/model.gguf --mmproj ect.. thenllama-box-agent in another terminal. -sbot and -wspr are enabled by default. have ip webcam running on specified server for visual support
 Architecture
 ------------
 ```
